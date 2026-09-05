@@ -4,8 +4,8 @@ Domain: Digital Pathology & Histology Systems
 Standard: CAP Cancer Protocols / DICOM WSI PS3.16
 """
 import uuid
-from typing import Dict, Any, List, Optional
-from .models import SystemTaskPayload, AgentAlert, UrgencyLevel, SystemIntegrityStatus
+from typing import List
+from .models import SystemTaskPayload, AgentAlert, UrgencyLevel
 
 
 class InvariantQCWorker:

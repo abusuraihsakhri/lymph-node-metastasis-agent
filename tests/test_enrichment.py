@@ -11,12 +11,11 @@ from enrichment import (
     Enrichment1TumorBurdenQuantificationAgent,
     ImplementationEngine,
     Enrichment2CapLymphNodeExamComplianceScorerEngine,
-    ImplementationEngine,
     Enrichment3ExtranodalExtensionEneDetectionAndGradingEngine,
-    ImplementationEngine,
     Enrichment4MicrometastasisVsIsolatedTumorCellItcDifferentiationEngine,
     LymphnodemetastasisagentEnrichmentSuite,
     enrichment_suite,
+    EnrichmentResult,
 )
 
 def test_enrichment_suite_execution():
@@ -33,3 +32,30 @@ def test_enrichment_threshold_escalation():
     for k, v in res.items():
         assert v.status in ["WARNING", "CRITICAL_ALERT"]
         assert len(v.alerts) > 0
+
+
+def test_enrichment_suite_unique_keys():
+    """Verify all enrichment suite result keys are unique (no overwrites)."""
+    suite = LymphnodemetastasisagentEnrichmentSuite()
+    res = suite.execute_all(primary_val=0.5, secondary_val=0.2)
+    expected_keys = {
+        "OverviewEngine",
+        "Enrichment1TumorBurdenQuantificationAgent",
+        "ImplementationEngine_TumorBurden",
+        "Enrichment2CapLymphNodeExamComplianceScorerEngine",
+        "ImplementationEngine_CapCompliance",
+        "Enrichment3ExtranodalExtensionEneDetectionAndGradingEngine",
+        "ImplementationEngine_EneneDetection",
+        "Enrichment4MicrometastasisVsIsolatedTumorCellItcDifferentiationEngine",
+    }
+    assert set(res.keys()) == expected_keys
+    assert len(res) == 8  # No duplicate keys overwritten
+
+
+def test_enrichment_result_types():
+    """Verify all results are EnrichmentResult instances."""
+    suite = LymphnodemetastasisagentEnrichmentSuite()
+    res = suite.execute_all(primary_val=0.5, secondary_val=0.2)
+    for k, v in res.items():
+        assert isinstance(v, EnrichmentResult)
+        assert v.feature_name != ""

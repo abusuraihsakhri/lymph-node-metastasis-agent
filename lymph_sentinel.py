@@ -17,7 +17,10 @@ import uuid
 from typing import Dict, Any, List, Optional
 
 
-class Severity(str):
+from enum import Enum
+
+
+class Severity(str, Enum):
     INFO = "INFO"
     ADVISORY = "ADVISORY"
     WARNING = "WARNING"

@@ -4,6 +4,7 @@ Domain: Digital Pathology & Histology Systems
 Standard: CAP Cancer Protocols / DICOM WSI PS3.16
 """
 import sys
+import math
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -63,3 +64,55 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_input_validation_rejects_nan():
+    """NaN metric values should be rejected by validation."""
+    with pytest.raises(ValueError, match="finite"):
+        SystemTaskPayload(task_id="T1", target_identifier="KEY-01", primary_metric=math.nan)
+
+
+def test_input_validation_rejects_infinity():
+    """Infinite metric values should be rejected by validation."""
+    with pytest.raises(ValueError, match="finite"):
+        SystemTaskPayload(task_id="T1", target_identifier="KEY-01", primary_metric=math.inf)
+
+
+def test_input_validation_rejects_empty_identifiers():
+    """Empty identifier strings should be rejected by validation."""
+    with pytest.raises(ValueError, match="non-empty"):
+        SystemTaskPayload(task_id="", target_identifier="KEY-01", primary_metric=10.0)
+    with pytest.raises(ValueError, match="non-empty"):
+        SystemTaskPayload(task_id="T1", target_identifier="", primary_metric=10.0)
+
+
+def test_input_validation_strips_whitespace():
+    """Identifier strings should be stripped of whitespace."""
+    payload = SystemTaskPayload(task_id="  T1  ", target_identifier="  KEY-01  ", primary_metric=10.0)
+    assert payload.task_id == "T1"
+    assert payload.target_identifier == "KEY-01"
+
+
+def test_audit_trail_requires_secret_key():
+    """AuditTrail should require a secret key (no hardcoded default)."""
+    from agents.base import AuditTrail
+    import os
+
+    # Save and clear the env var
+    original = os.environ.pop("AUDIT_SECRET_KEY", None)
+    try:
+        with pytest.raises(SecurityException, match="AUDIT_SECRET_KEY"):
+            AuditTrail()
+    finally:
+        # Restore the env var
+        if original is not None:
+            os.environ["AUDIT_SECRET_KEY"] = original
+
+
+def test_audit_trail_accepts_explicit_key():
+    """AuditTrail should accept an explicit secret key."""
+    from agents.base import AuditTrail
+
+    trail = AuditTrail(secret_key="test-secret-key-12345")
+    assert len(trail.get_trail()) == 0
+    assert trail.verify_integrity() is True

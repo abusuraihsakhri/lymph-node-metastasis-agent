@@ -1,7 +1,6 @@
 """
 Prometheus Operational Metrics Exporter for lymph-node-metastasis-agent.
 """
-import time
 from typing import Dict, Any
 
 class SystemMetricsCollector:
