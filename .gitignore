@@ -42,3 +42,7 @@ output.csv
 *.pem
 *.key
 .env.local
+
+# Local secrets and environment overrides
+.env.*
+!.env.example
