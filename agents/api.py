@@ -12,8 +12,8 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Lymph Node Metastasis Agent API",
-    description="Enterprise Distributed Component Platform (Digital Pathology & Histology Systems)",
-    version="3.0.0-ENTERPRISE",
+    description="Generic rule-demonstration service; not validated for clinical diagnosis or staging.",
+    version="2.0.1",
 )
 
 
@@ -23,7 +23,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "lymph-node-metastasis-agent", "domain": "Digital Pathology & Histology Systems", "standard": "CAP Cancer Protocols / DICOM WSI PS3.16", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "lymph-node-metastasis-agent", "domain": "Digital Pathology & Histology Systems", "mode": "DEMONSTRATION", "version": "2.0.1"}
 
 
 @app.get("/metrics")
