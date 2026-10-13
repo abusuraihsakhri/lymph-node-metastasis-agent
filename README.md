@@ -1,177 +1,87 @@
 # Lymph Node Metastasis Agent
 
-> **Domain:** Digital Pathology & Quantitative Histopathology  
-> **Reference Guidelines & Standards:** College of American Pathologists (CAP) Synoptic Protocols & DICOM WSI
+A collection of Python demonstration engines and a standalone browser interface for exploring **rule-based flagging of numeric inputs**. The browser and Python implementations use illustrative thresholds; they do **not** analyze histology images or calculate validated pathologic staging.
 
-<div align="center">
+## Browser demonstration
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+Open [web/index.html](web/index.html) locally in a modern browser. The interface works without Python, a backend, a build step, login, or API keys.
 
-</div>
+- Enter synthetic task IDs, two unitless metrics, an optional status keyword, and a priority flag.
+- Evaluate three deterministic rules: primary metric **>25**, secondary metric **>12** or priority flag, and configured descriptor keywords.
+- Inspect the output and download a JSON result.
+- Validation rejects malformed identifiers, negative/non-finite metrics, and unsupported descriptor characters.
 
----
+The static browser tool reproduces the **generic worker trigger rules** in `agents/workers.py`; it does not execute Python or cryptographically sign results. Browser data remains in the current page/session and is not sent to a server or written to browser storage. Do not enter patient information.
 
-## 📖 What It Does
+## Clinical limitations
 
-**Lymph Node Metastasis Agent** is an advanced analytical and computational platform implementing Sentinel Node Micrometastasis & ITC Staging Agent. It evaluates lymph node measurements against clinical thresholds and generates consensus dossiers with tamper-evident audit trails.
+**For research and software demonstration only—not for patient care.** The repository contains generic thresholds, simulated worker alerts, and legacy clinical-themed modules. No diagnostic performance, tissue image interpretation, ITC/micrometastasis classification, pN staging, CAP protocol compliance, or HIPAA compliance has been established or validated. Thresholds such as 25 and 12 have **no defined clinical units or guideline support**. Consult the applicable current, site-specific staging protocols and a qualified pathologist for actual clinical decisions.
 
----
+## Python installation
 
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-### 🔬 Core Algorithmic & Evaluation Engines
-
-- **`Severity`** — dedicated module for severity evaluation and state verification.
-- **`DomainKnowledgeRegistry`**: Enterprise domain rules, guideline matrices, and evidence benchmarks.
-- **`AgentAlert`** — dedicated module for agent alert evaluation and state verification.
-- **`MetastasisDimensionAgent`**: Specialized Sub-Agent 1 for lymph-node-metastasis-agent
-- **`ExtracapsularExtensionAgent`**: Specialized Sub-Agent 2 for lymph-node-metastasis-agent
-- **`pNStageSynthesizerAgent`**: Specialized Sub-Agent 3 for lymph-node-metastasis-agent
-
----
-
-## 🚀 Installation
+Python 3.10 or newer is required. Clone the repository and install the appropriate extras:
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusuraihsakhri/lymph-node-metastasis-agent.git
 cd lymph-node-metastasis-agent
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
-
-# Set required environment variable for audit security
-export AUDIT_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
+python -m pip install -e ".[api]"
 ```
 
----
+For Python tests, also install `python -m pip install -e ".[test]"`.
 
-## 💻 CLI Quickstart & Usage
+### Generic worker CLI and API
 
-### 1. Single Task Evaluation
+The root-level `cli.py` uses `agents/` and writes **in-memory HMAC-SHA256 audit entries**. Set a unique key before invoking audit operations:
+
 ```bash
-python cli.py audit --task-id TASK-2026-001 --primary 28.5 --secondary 14.2 --status DISCORDANT
-```
-
-### 2. Interactive Chat Query
-```bash
-python cli.py chat "Explain specifications"
-```
-
-### 3. Batch Processing
-```bash
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+python cli.py audit --task-id TASK-001 --target SAMPLE-001 --primary 28 --secondary 14 --status DISCORDANT
 python cli.py batch -i sample.csv -o results.csv
-```
-
-### 4. Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
-
-### 5. Launch REST API Server
-```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Parameter Reference
-| Parameter | Description | Default |
-|:----------|:------------|:--------|
-| `--task-id` | Unique task/case identifier | TASK-2026-001 |
-| `--target` | Entity or target identifier | KEY-TARGET-01 |
-| `--primary` | Primary measurement value (float) | 28.5 |
-| `--secondary` | Secondary measurement value (float) | 14.2 |
-| `--critical` | Flag for critical escalation | False |
-| `--status` | Status descriptor (NOMINAL, DISCORDANT, etc.) | DISCORDANT |
+The REST service exposes `GET /health`, `GET /metrics`, `POST /api/audit`, `POST /api/chat`, and `GET /api/audit/logs`. Interactive API documentation is available at `http://127.0.0.1:8000/docs` while the server runs.
 
-### Input Data Schema (CSV)
+Audit entries are **volatile**: they do not persist across process restarts and are not a durable or HIPAA-certified record. `verify-audit` verifies only entries in the current running process. A missing `AUDIT_SECRET_KEY` prevents audit operations. The PHI patterns are limited screening checks, not reliable de-identification.
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Unique task identifier | Required |
-| `target_identifier` | Entity/target identifier | Required |
-| `primary_metric` | Primary measurement value | Required |
-| `secondary_metric` | Secondary measurement value | Optional |
-| `status_descriptor` | Status code (NOMINAL, DISCORDANT, etc.) | Optional |
-| `is_critical_flag` | Critical escalation flag (true/false) | Optional |
+### Legacy interfaces
 
----
-
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition. Requires `AUDIT_SECRET_KEY` environment variable.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+The repository also preserves independent example entry points:
 
 ```bash
-# Set test audit key (tests use a deterministic key)
-export AUDIT_SECRET_KEY="test-audit-key-for-development-only"
-
-# Run all tests
-pytest -v
+python -m lymph_node_metastasis_agent.cli audit --case-id CASE-001 --primary 2 --secondary 1
+python lymph_sentinel.py audit --case-id CASE-001 --primary 2 --secondary 1
+python simulator.py 100
 ```
 
-Execute high-throughput batch simulation benchmarks:
+These modules implement different historical rule sets and outputs. Do not assume equivalence with `agents/` or the browser demo; no actual histology classifier, trained image model, or robust staging algorithm is bundled.
+
+## Docker
+
+With `AUDIT_SECRET_KEY` set in the environment:
 
 ```bash
-python simulator.py 1000
+docker compose up --build
 ```
 
----
+Compose binds the API to `127.0.0.1:8000` by default. There is **no** bundled secret; use a generated secret, do not commit it, and protect the API with appropriate access controls before exposing it beyond the local machine.
 
-## 🐳 Container Deployment
+## Testing
 
 ```bash
-docker build -t lymph-node-metastasis-agent .
-docker run -e AUDIT_SECRET_KEY=your-secret-key -p 8000:8000 lymph-node-metastasis-agent
+python -m pip install -e ".[test]"
+export AUDIT_SECRET_KEY="test-only-key-do-not-use-in-production"
+python -m pytest -q
+node --check web/app.js
+node --test web/app.test.cjs
 ```
 
----
+GitHub Actions checks Python 3.10–3.12 and browser rule tests. The web app is dependency-free vanilla HTML, CSS, and JavaScript and is intended for current desktop/mobile browsers. The REST service uses FastAPI, Pydantic v2, and Uvicorn. Server and browser modes do not require external LLM services; the `mock` responder is deterministic.
 
-## 📁 Project Structure
+## Privacy and security
 
-```
-lymph-node-metastasis-agent/
-├── agents/                    # Core agent modules
-│   ├── __init__.py
-│   ├── api.py                 # FastAPI REST endpoints
-│   ├── base.py                # Security, PHI guard, audit trail
-│   ├── learning.py            # Bayesian calibration engine
-│   ├── llm_factory.py         # LLM provider factory
-│   ├── metrics.py             # Prometheus metrics collector
-│   ├── models.py              # Pydantic data models
-│   ├── streamer.py            # WebSocket telemetry
-│   ├── supervisor.py          # Master orchestrator
-│   └── workers.py             # Domain worker agents
-├── tests/                     # Test suite
-│   ├── test_enrichment.py
-│   └── test_lymph_node_metastasis_agent.py
-├── cli.py                     # Command-line interface
-├── enrichment.py              # Enrichment feature engines
-├── lymph_sentinel.py          # LymphSentinel clinical engine
-├── simulator.py               # High-throughput simulator
-├── sample.csv                 # Sample input data
-├── sample_payload.json        # Sample API payload
-├── pyproject.toml             # Project configuration
-├── Dockerfile                 # Container definition
-└── web/                       # Web interface
-    └── index.html
-```
+The static page makes no HTTP requests from its application code and has no analytics, external fonts, cookies, or local storage. Python tools can retain synthetic task identifiers and in-memory audit metadata while running; do not submit real patient identifiers. The API has **no authentication** and should not be publicly exposed. The audit chain authenticates metadata fields with HMAC-SHA256 but is not persistent; it does not prove that upstream inputs are accurate.
 
----
+## License
 
-## 📜 License
-
-MIT License. See [LICENSE](LICENSE) for details.
+[MIT](LICENSE).
