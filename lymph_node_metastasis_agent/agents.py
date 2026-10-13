@@ -105,6 +105,6 @@ class LymphCoordinator:
         if "status" in q or "summary" in q:
             return f"LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector currently tracking {len(self.case_registry)} cases in on-premises memory."
         elif "guideline" in q or "standard" in q:
-            return "Active clinical surveillance operates under CAP Cancer Protocols & ASCO/CAP 2023 validated protocols."
+            return "This example uses generic rules; no site-specific CAP protocol conformance has been demonstrated."
         else:
-            return f"LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector executive agent online. Zero-PHI air-gapped monitoring active."
+            return f"LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector example responder active. Do not enter patient information."

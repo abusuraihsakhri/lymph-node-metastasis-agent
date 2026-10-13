@@ -9,6 +9,7 @@ import time
 import hmac
 import hashlib
 from typing import Dict, Any, List, Optional
+from threading import RLock
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
@@ -55,7 +56,10 @@ class PHIGuard:
 
 
 class AuditTrail:
-    """Cryptographic Tamper-Evident HMAC-SHA256 Audit Trail."""
+    """In-memory HMAC-SHA256 hash chain; entries are not persisted across restarts."""
+
+    GENESIS = "GENESIS_BLOCK_0000000000000000"
+
     def __init__(self, secret_key: Optional[str] = None):
         resolved_key = secret_key or os.getenv("AUDIT_SECRET_KEY")
         if not resolved_key:
@@ -65,55 +69,82 @@ class AuditTrail:
             )
         self.secret_key = resolved_key.encode("utf-8")
         self.logs: List[Dict[str, Any]] = []
+        self._lock = RLock()
 
     def log(self, actor: str, actor_tier: str, event_type: str, details: Dict[str, Any]) -> Dict[str, Any]:
-        payload_str = json.dumps(details, sort_keys=True)
-        assert_no_phi(payload_str)
+        payload_str = json.dumps(details, sort_keys=True, allow_nan=False)
+        for text in (actor, actor_tier, event_type, payload_str):
+            assert_no_phi(text)
         payload_hash = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
-        audit_id = f"AUDIT-{int(time.time()*1000)}-{len(self.logs)+1}"
         ts = datetime.now(timezone.utc).isoformat()
-        prev_hash = self.logs[-1]["current_hash"] if self.logs else "GENESIS_BLOCK_0000000000000000"
-        sign_string = f"{audit_id}|{ts}|{actor}|{actor_tier}|{event_type}|{payload_hash}|{prev_hash}"
-        signature = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
-        entry = {
-            "audit_id": audit_id,
-            "timestamp": ts,
-            "actor": actor,
-            "actor_tier": actor_tier,
-            "event_type": event_type,
-            "payload_hash": payload_hash,
-            "prev_hash": prev_hash,
-            "current_hash": signature,
-        }
-        self.logs.append(entry)
-        return entry
+        with self._lock:
+            audit_id = f"AUDIT-{int(time.time()*1000)}-{len(self.logs)+1}"
+            prev_hash = self.logs[-1]["current_hash"] if self.logs else self.GENESIS
+            sign_string = f"{audit_id}|{ts}|{actor}|{actor_tier}|{event_type}|{payload_hash}|{prev_hash}"
+            signature = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
+            entry = {
+                "audit_id": audit_id,
+                "timestamp": ts,
+                "actor": actor,
+                "actor_tier": actor_tier,
+                "event_type": event_type,
+                "payload_hash": payload_hash,
+                "prev_hash": prev_hash,
+                "current_hash": signature,
+            }
+            self.logs.append(entry)
+            return dict(entry)
 
     def verify_integrity(self) -> bool:
-        for i, entry in enumerate(self.logs):
-            prev = self.logs[i-1]["current_hash"] if i > 0 else "GENESIS_BLOCK_0000000000000000"
-            if entry["prev_hash"] != prev:
-                return False
-        return True
+        """Verify linkage AND every HMAC signature, not merely the previous hash."""
+        with self._lock:
+            prev = self.GENESIS
+            for entry in self.logs:
+                try:
+                    if entry["prev_hash"] != prev:
+                        return False
+                    sign_string = "|".join(str(entry[k]) for k in (
+                        "audit_id", "timestamp", "actor", "actor_tier",
+                        "event_type", "payload_hash", "prev_hash"
+                    ))
+                    expected = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
+                    actual = entry["current_hash"]
+                    if not isinstance(actual, str) or not hmac.compare_digest(expected, actual):
+                        return False
+                    prev = actual
+                except (KeyError, TypeError, ValueError):
+                    return False
+            return True
 
     def get_trail(self) -> List[Dict[str, Any]]:
-        return self.logs
+        with self._lock:
+            return [dict(entry) for entry in self.logs]
 
 
-GLOBAL_AUDIT = AuditTrail()
+_GLOBAL_AUDIT: Optional[AuditTrail] = None
+_GLOBAL_AUDIT_LOCK = RLock()
+
+
+def _get_global_audit() -> AuditTrail:
+    global _GLOBAL_AUDIT
+    with _GLOBAL_AUDIT_LOCK:
+        if _GLOBAL_AUDIT is None:
+            _GLOBAL_AUDIT = AuditTrail()
+        return _GLOBAL_AUDIT
 
 
 class AuditLogger:
     @staticmethod
     def log(actor: str, actor_tier: str, event_type: str, details: Dict[str, Any]) -> Dict[str, Any]:
-        return GLOBAL_AUDIT.log(actor, actor_tier, event_type, details)
+        return _get_global_audit().log(actor, actor_tier, event_type, details)
 
     @staticmethod
     def get_trail() -> List[Dict[str, Any]]:
-        return GLOBAL_AUDIT.get_trail()
+        return _get_global_audit().get_trail()
 
     @staticmethod
     def verify_integrity() -> bool:
-        return GLOBAL_AUDIT.verify_integrity()
+        return _get_global_audit().verify_integrity()
 
 
 class ActionExecutor:
