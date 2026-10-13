@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector
-Automated system classifying sentinel lymph node metastases into Isolated Tumor Cells (ITC <=0.2mm), Micrometastases (0.2-2mm), and Macromets (>2mm).
+Legacy rule-based numeric alert demonstration; not a metastasis or pN classifier.
 
 Domain: Digital Pathology
 Author: Dr. Abu Suraih Sakhri
@@ -168,7 +168,7 @@ class LymphCoordinator:
         if "summary" in q or "status" in q:
             return f"LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector currently tracking {len(self.case_registry)} cases in local air-gapped memory."
         elif "guidelines" in q or "protocol" in q:
-            return "All sub-agents operate under validated consensus clinical algorithms and CAP/CLSI/NCCN/WHO standards."
+            return "This legacy module uses illustrative thresholds, not validated clinical staging guidelines."
         else:
             return f"LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector executive agent online. Continuous supervisory monitoring active across all domain parameters."
 
