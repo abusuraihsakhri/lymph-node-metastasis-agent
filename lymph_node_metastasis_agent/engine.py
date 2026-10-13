@@ -9,7 +9,7 @@ from .models import ClinicalCasePayload, AgentAlert, UrgencyLevel, ClinicalInteg
 
 
 class ClinicalDomainEngine:
-    GUIDELINE = "CAP Cancer Protocols & ASCO/CAP 2023"
+    GUIDELINE = "Illustrative thresholds; not a validated clinical guideline"
     PRIMARY_BASELINE_LIMIT = 20.0
     SECONDARY_ALERT_LIMIT = 10.0
 
