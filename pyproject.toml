@@ -4,24 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lymph-node-metastasis-engine"
-version = "2.0.0"
-description = "LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector"
+version = "2.0.1"
+description = "Local rule-based lymph node assessment demonstrations"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+authors = [{ name = "Dr. Abu Suraih Sakhri" }]
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
+
+[project.optional-dependencies]
+api = ["fastapi>=0.110,<1", "uvicorn>=0.29,<1", "pydantic>=2,<3"]
+test = ["pytest>=8,<10", "pydantic>=2,<3", "fastapi>=0.110,<1", "httpx>=0.27,<1"]
 
 [project.scripts]
 lymph-node-metastasis-engine = "lymph_node_metastasis_agent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/lymph-node-metastasis-engine"
-Repository = "https://github.com/abusuraihsakhri/lymph-node-metastasis-engine.git"
+Homepage = "https://github.com/abusuraihsakhri/lymph-node-metastasis-agent"
+Repository = "https://github.com/abusuraihsakhri/lymph-node-metastasis-agent"
+
+[tool.setuptools.packages.find]
+include = ["agents*", "lymph_node_metastasis_agent*"]
