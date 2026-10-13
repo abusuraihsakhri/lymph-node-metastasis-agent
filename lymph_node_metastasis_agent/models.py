@@ -4,6 +4,7 @@ Domain: Digital Pathology
 Standard: CAP Cancer Protocols & ASCO/CAP 2023
 """
 import datetime
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
@@ -33,6 +34,14 @@ class ClinicalCasePayload:
     clinical_notes: str = ""
     biomarkers: Dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+    def __post_init__(self):
+        for label in ("primary_metric", "secondary_metric"):
+            value = getattr(self, label)
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"{label} must be finite and non-negative")
+        if not self.case_id.strip() or not self.patient_synthetic_id.strip():
+            raise ValueError("Case and synthetic identifiers must not be empty")
 
 
 @dataclass
