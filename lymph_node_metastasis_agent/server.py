@@ -14,7 +14,7 @@ def create_app():
 
         app = FastAPI(
             title="LymphSentinel: Autonomous Sentinel Node Micrometastasis & ITC Detector",
-            description="Automated system classifying sentinel lymph node metastases into Isolated Tumor Cells (ITC <=0.2mm), Micrometastases (0.2-2mm), and Macromets (>2mm).",
+            description="Legacy numeric rule demonstration; no histologic metastasis detection or pN classification.",
             version="2.0.0-PRO",
         )
 
